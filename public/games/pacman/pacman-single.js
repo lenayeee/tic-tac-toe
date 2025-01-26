@@ -91,8 +91,39 @@ class PacmanGame {
     }
 
     initializeMaze() {
-        // Same maze initialization as multiplayer version
-        // ... (copy the initializeMaze method from the multiplayer version)
+        // 0: empty, 1: wall, 2: dot, 3: power pellet, 4: ghost door
+        this.maze = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+            [1,3,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,3,1],
+            [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+            [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+            [1,2,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,2,1],
+            [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+            [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,1,1,1,0,1,1,0,1,1,1,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,1,1,1,4,4,1,1,1,0,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+            [0,0,0,0,0,0,2,0,0,0,1,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0],
+            [1,1,1,1,1,1,2,1,1,0,1,0,0,0,0,0,0,1,0,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,0,0,0,0,0,0,0,0,0,1,1,2,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,0,1,1,1,1,1,1,1,1,0,1,1,2,1,1,1,1,1,1],
+            [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
+            [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+            [1,2,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,2,1],
+            [1,3,2,2,1,1,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,1,1,2,2,3,1],
+            [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+            [1,1,1,2,1,1,2,1,1,2,1,1,1,1,1,1,1,1,2,1,1,2,1,1,2,1,1,1],
+            [1,2,2,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,1,1,2,2,2,2,2,2,1],
+            [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+            [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
+            [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
     }
 
     start() {
@@ -197,8 +228,81 @@ class PacmanGame {
         this.ctx.fillText('Press Space to Play Again', this.canvas.width/2, this.canvas.height/2 + 80);
     }
 
-    // ... (copy the remaining methods from multiplayer version)
-    // Including: update(), draw(), updatePacman(), updateGhosts(), etc.
+    update() {
+        if (!this.alive || this.paused) return;
+
+        this.updatePacman();
+        this.updateGhosts();
+        this.checkCollisions();
+        this.updatePowerMode();
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw maze
+        for (let y = 0; y < this.maze.length; y++) {
+            for (let x = 0; x < this.maze[y].length; x++) {
+                const tile = this.maze[y][x];
+                if (tile === 1) {
+                    this.ctx.fillStyle = '#00f';
+                    this.ctx.fillRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                } else if (tile === 2) {
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x * this.tileSize + this.tileSize/2, y * this.tileSize + this.tileSize/2, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } else if (tile === 3) {
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x * this.tileSize + this.tileSize/2, y * this.tileSize + this.tileSize/2, 6, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            }
+        }
+
+        // Draw ghosts
+        this.ghosts.forEach(ghost => {
+            this.ctx.fillStyle = this.powerMode ? '#0000ff' : ghost.color;
+            this.ctx.beginPath();
+            this.ctx.arc(ghost.x + this.tileSize/2, ghost.y + this.tileSize/2, this.tileSize/2, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+
+        // Draw Pacman
+        this.ctx.fillStyle = '#ffff00';  // Classic Pacman yellow
+        this.ctx.beginPath();
+        const mouthAngle = this.pacman.mouthOpen * Math.PI;
+        this.ctx.arc(
+            this.pacman.x + this.tileSize/2,
+            this.pacman.y + this.tileSize/2,
+            this.tileSize/2,
+            mouthAngle + this.getDirectionAngle(),
+            -mouthAngle + this.getDirectionAngle()
+        );
+        this.ctx.lineTo(this.pacman.x + this.tileSize/2, this.pacman.y + this.tileSize/2);
+        this.ctx.fill();
+    }
+
+    updatePacman() {
+        // Implement Pacman update logic
+    }
+
+    updateGhosts() {
+        // Implement ghosts update logic
+    }
+
+    checkCollisions() {
+        // Implement collision checking logic
+    }
+
+    updatePowerMode() {
+        // Implement power mode update logic
+    }
+
+    getDirectionAngle() {
+        // Implement logic to get Pacman's direction angle
+    }
 }
 
 // Game initialization
