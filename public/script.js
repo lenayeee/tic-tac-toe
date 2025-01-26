@@ -40,6 +40,24 @@ function connect() {
             case 'status':
                 document.getElementById('status').textContent = data.message;
                 break;
+                
+            case 'lobbyUpdate':
+                const playerList = document.getElementById('playerList');
+                const queueInfo = document.getElementById('queueInfo');
+                
+                // Update queue info
+                queueInfo.textContent = `Players in game: ${data.currentPlayers}`;
+                
+                // Update waiting list
+                if (data.waitingCount > 0) {
+                    const positions = data.positions.map(pos => 
+                        `<div class="queue-position">Player #${pos} waiting</div>`
+                    ).join('');
+                    playerList.innerHTML = positions;
+                } else {
+                    playerList.innerHTML = '<div class="queue-position">No players waiting</div>';
+                }
+                break;
         }
     };
 

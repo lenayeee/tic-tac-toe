@@ -11,6 +11,7 @@ app.use(express.static('public'));
 const games = new Map();
 let waitingPlayer = null;
 let waitingQueue = []; // Add queue for waiting players
+let playerCount = 0;
 
 // Add function to start new game
 function startNewGame(player1, player2) {
@@ -28,7 +29,29 @@ function startNewGame(player1, player2) {
     player2.send(JSON.stringify({ type: 'init', symbol: 'O' }));
 }
 
+function updateLobbyForAll() {
+    const queueInfo = {
+        type: 'lobbyUpdate',
+        waitingCount: waitingQueue.length,
+        currentPlayers: Array.from(games.values()).length * 2,
+        positions: waitingQueue.map((_, index) => index + 1)
+    };
+    
+    // Send to all connected players
+    wss.clients.forEach(client => {
+        if (client.readyState === 1) { // if client is connected
+            client.send(JSON.stringify(queueInfo));
+        }
+    });
+}
+
 wss.on('connection', (ws) => {
+    playerCount++;
+    ws.playerId = playerCount;
+    
+    // Send initial lobby state to new connection
+    updateLobbyForAll();
+    
     // Handle new connections
     if (waitingPlayer) {
         startNewGame(waitingPlayer, ws);
@@ -42,8 +65,10 @@ wss.on('connection', (ws) => {
                 message: 'Your turn is next! Waiting for opponent...'
             }));
         }
+        updateLobbyForAll();
     } else {
         waitingPlayer = ws;
+        updateLobbyForAll();
     }
     
     ws.on('message', (message) => {
@@ -89,6 +114,7 @@ wss.on('connection', (ws) => {
                     type: 'status', 
                     message: `You are #${waitingQueue.length} in queue...`
                 }));
+                updateLobbyForAll();
                 break;
         }
     });
@@ -117,6 +143,7 @@ wss.on('connection', (ws) => {
             });
             games.delete(ws.gameId);
         }
+        updateLobbyForAll();
     });
 });
 
