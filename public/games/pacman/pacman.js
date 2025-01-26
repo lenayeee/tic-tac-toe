@@ -35,6 +35,14 @@ class PacmanGame {
         
         // Initialize the maze
         this.initializeMaze();
+
+        // Add sound effects
+        this.sounds = {
+            chomp: new Audio('/games/pacman/sounds/chomp.wav'),
+            powerPellet: new Audio('/games/pacman/sounds/power_pellet.wav'),
+            ghostEaten: new Audio('/games/pacman/sounds/ghost_eaten.wav'),
+            death: new Audio('/games/pacman/sounds/death.wav')
+        };
     }
 
     initializeMaze() {
@@ -92,6 +100,20 @@ class PacmanGame {
         let nextX = this.pacman.x;
         let nextY = this.pacman.y;
 
+        // Align to grid when changing direction
+        const currentTileX = Math.floor(this.pacman.x / this.tileSize);
+        const currentTileY = Math.floor(this.pacman.y / this.tileSize);
+        const alignedX = currentTileX * this.tileSize;
+        const alignedY = currentTileY * this.tileSize;
+
+        // Only allow direction changes when aligned to grid
+        if (Math.abs(this.pacman.x - alignedX) < this.pacman.speed && 
+            Math.abs(this.pacman.y - alignedY) < this.pacman.speed) {
+            this.pacman.x = alignedX;
+            this.pacman.y = alignedY;
+            this.pacman.direction = this.pacman.nextDirection;
+        }
+
         switch(this.pacman.direction) {
             case 'right': nextX += this.pacman.speed; break;
             case 'left': nextX -= this.pacman.speed; break;
@@ -100,29 +122,31 @@ class PacmanGame {
         }
 
         // Check if next position is valid
-        const tileX = Math.floor(nextX / this.tileSize);
-        const tileY = Math.floor(nextY / this.tileSize);
+        const nextTileX = Math.floor(nextX / this.tileSize);
+        const nextTileY = Math.floor(nextY / this.tileSize);
 
-        if (this.maze[tileY] && this.maze[tileY][tileX] !== 1) {
+        if (this.maze[nextTileY] && this.maze[nextTileY][nextTileX] !== 1) {
             this.pacman.x = nextX;
             this.pacman.y = nextY;
 
             // Collect dots and power pellets
-            if (this.maze[tileY][tileX] === 2) {
-                this.maze[tileY][tileX] = 0;
+            if (this.maze[nextTileY][nextTileX] === 2) {
+                this.maze[nextTileY][nextTileX] = 0;
                 this.score += 10;
+                this.sounds.chomp.play();
                 ws.send(JSON.stringify({
                     type: 'dotEaten',
-                    position: { x: tileX, y: tileY }
+                    position: { x: nextTileX, y: nextTileY }
                 }));
-            } else if (this.maze[tileY][tileX] === 3) {
-                this.maze[tileY][tileX] = 0;
+            } else if (this.maze[nextTileY][nextTileX] === 3) {
+                this.maze[nextTileY][nextTileX] = 0;
                 this.score += 50;
                 this.powerMode = true;
                 this.powerModeTimer = 600;
+                this.sounds.powerPellet.play();
                 ws.send(JSON.stringify({
                     type: 'powerPellet',
-                    position: { x: tileX, y: tileY }
+                    position: { x: nextTileX, y: nextTileY }
                 }));
             }
         }
@@ -229,7 +253,6 @@ class PacmanGame {
     }
 
     checkCollisions() {
-        // Check ghost collisions
         this.ghosts.forEach(ghost => {
             const dx = this.pacman.x - ghost.x;
             const dy = this.pacman.y - ghost.y;
@@ -237,13 +260,13 @@ class PacmanGame {
 
             if (distance < this.tileSize) {
                 if (this.powerMode) {
-                    // Ghost gets eaten
                     ghost.x = 14 * this.tileSize;
                     ghost.y = 14 * this.tileSize;
                     this.score += 200;
+                    this.sounds.ghostEaten.play();
                 } else {
-                    // Pacman gets eaten
                     this.alive = false;
+                    this.sounds.death.play();
                 }
             }
         });
@@ -411,10 +434,28 @@ function startGameLoop() {
 
         // Check for game over conditions
         if (!player1.alive || !player2.alive) {
-            const winner = !player1.alive ? 'Player 2' : 'Player 1';
+            let winner;
+            if (!player1.alive && !player2.alive) {
+                // Both dead, highest score wins
+                winner = player1.score > player2.score ? 'Player 1' : 
+                        player2.score > player1.score ? 'Player 2' : 
+                        'Tie';
+            } else {
+                // One player alive, check scores
+                if (!player1.alive) {
+                    winner = player1.score > player2.score ? 'Player 1' : 'Player 2';
+                } else {
+                    winner = player2.score > player1.score ? 'Player 2' : 'Player 1';
+                }
+            }
+            
             ws.send(JSON.stringify({
                 type: 'gameOver',
-                winner: winner
+                winner: winner,
+                scores: {
+                    player1: player1.score,
+                    player2: player2.score
+                }
             }));
             clearInterval(gameLoop);
         }
