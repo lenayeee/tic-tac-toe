@@ -276,6 +276,11 @@ function connect() {
         console.log('WebSocket connected successfully');
     };
 
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleGameMessage(data);
+    };
+
     ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         document.getElementById('status').textContent = 'Connection error. Please refresh the page.';
