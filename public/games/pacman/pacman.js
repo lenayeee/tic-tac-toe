@@ -11,8 +11,8 @@ class PacmanGame {
         
         // Pacman position and movement
         this.pacman = {
-            x: 14 * this.tileSize,
-            y: 23 * this.tileSize,
+            x: 14 * this.tileSize,  // Center X position
+            y: 26 * this.tileSize,  // Bottom path position
             direction: 'right',
             nextDirection: 'right',
             speed: 2,
@@ -299,23 +299,35 @@ function initGame() {
     player1 = new PacmanGame(canvas1, '#ffff00');
     player2 = new PacmanGame(canvas2, '#00ffff');
 
+    // Draw initial state immediately
+    player1.draw();
+    player2.draw();
+
     document.addEventListener('keydown', handleKeyPress);
 }
 
 function handleKeyPress(event) {
-    if (!isPlayer1) return; // Only handle input for the current player
-    
-    const pacman = isPlayer1 ? player1.pacman : player2.pacman;
-    let newDirection = pacman.direction;
+    let newDirection;
+    let currentPlayer;
 
-    if (isPlayer1) {
+    // Determine which player is making the move
+    if (event.key.toLowerCase() === 'w' || 
+        event.key.toLowerCase() === 'a' || 
+        event.key.toLowerCase() === 's' || 
+        event.key.toLowerCase() === 'd') {
+        // Player 1 controls
+        if (!isPlayer1) return; // Only handle if we are Player 1
+        currentPlayer = player1;
         switch(event.key.toLowerCase()) {
             case 'w': newDirection = 'up'; break;
             case 's': newDirection = 'down'; break;
             case 'a': newDirection = 'left'; break;
             case 'd': newDirection = 'right'; break;
         }
-    } else {
+    } else if (event.key.includes('Arrow')) {
+        // Player 2 controls
+        if (isPlayer1) return; // Only handle if we are Player 2
+        currentPlayer = player2;
         switch(event.key) {
             case 'ArrowUp': newDirection = 'up'; break;
             case 'ArrowDown': newDirection = 'down'; break;
@@ -324,15 +336,15 @@ function handleKeyPress(event) {
         }
     }
 
-    // Send direction change to server
-    if (newDirection !== pacman.direction) {
-        pacman.direction = newDirection; // Update local direction immediately
+    // Send direction change to server if we have a valid move
+    if (newDirection && currentPlayer) {
+        currentPlayer.pacman.direction = newDirection; // Update local direction immediately
         ws.send(JSON.stringify({
             type: 'move',
             direction: newDirection,
             position: {
-                x: pacman.x,
-                y: pacman.y
+                x: currentPlayer.pacman.x,
+                y: currentPlayer.pacman.y
             }
         }));
     }
