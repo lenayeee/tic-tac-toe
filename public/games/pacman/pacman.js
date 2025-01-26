@@ -12,7 +12,7 @@ class PacmanGame {
         // Pacman position and movement
         this.pacman = {
             x: 14 * this.tileSize,  // Center X position
-            y: 26 * this.tileSize,  // Bottom path position
+            y: 23 * this.tileSize,  // Starting position (moved up from bottom)
             direction: 'right',
             nextDirection: 'right',
             speed: 2,
@@ -22,10 +22,10 @@ class PacmanGame {
 
         // Ghost properties
         this.ghosts = [
-            { x: 14 * this.tileSize, y: 11 * this.tileSize, color: '#ff0000', direction: 'up' },    // Red
-            { x: 12 * this.tileSize, y: 14 * this.tileSize, color: '#00ffff', direction: 'left' },  // Cyan
-            { x: 14 * this.tileSize, y: 14 * this.tileSize, color: '#ffb8ff', direction: 'right' }, // Pink
-            { x: 16 * this.tileSize, y: 14 * this.tileSize, color: '#ffb852', direction: 'down' }   // Orange
+            { x: 13 * this.tileSize, y: 14 * this.tileSize, color: '#ff0000', direction: 'up' },    // Red
+            { x: 14 * this.tileSize, y: 14 * this.tileSize, color: '#00ffff', direction: 'left' },  // Cyan
+            { x: 15 * this.tileSize, y: 14 * this.tileSize, color: '#ffb8ff', direction: 'right' }, // Pink
+            { x: 14 * this.tileSize, y: 15 * this.tileSize, color: '#ffb852', direction: 'down' }   // Orange
         ];
 
         // Game state
@@ -426,7 +426,7 @@ class PacmanGame {
     isValidMove(entity, direction) {
         let nextX = entity.x;
         let nextY = entity.y;
-        const margin = 2; // Add a small margin for better collision
+        const margin = 2;
 
         switch(direction) {
             case 'up': nextY -= this.pacman.speed; break;
@@ -443,11 +443,12 @@ class PacmanGame {
             { x: nextX + this.tileSize - margin, y: nextY + this.tileSize - margin }
         ];
 
-        // If any corner hits a wall, movement is invalid
+        // If any corner hits a wall or ghost door (when it's Pacman), movement is invalid
         return !points.some(point => {
             const tileX = Math.floor(point.x / this.tileSize);
             const tileY = Math.floor(point.y / this.tileSize);
-            return !this.maze[tileY] || this.maze[tileY][tileX] === 1;
+            const tile = this.maze[tileY]?.[tileX];
+            return tile === 1 || (tile === 4 && entity === this.pacman);
         });
     }
 
