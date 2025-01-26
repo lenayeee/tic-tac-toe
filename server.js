@@ -13,6 +13,12 @@ let waitingPlayer = null;
 let waitingQueue = []; // Add queue for waiting players
 let playerCount = 0;
 
+const snakeGames = new Map();
+let waitingSnakePlayer = null;
+
+const pacmanGames = new Map();
+let waitingPacmanPlayer = null;
+
 // Add function to start new game
 function startNewGame(player1, player2) {
     const gameId = Date.now();
@@ -45,86 +51,205 @@ function updateLobbyForAll() {
     });
 }
 
-wss.on('connection', (ws) => {
+// Add this function to handle Snake game messages
+function handleSnakeGame(ws, message) {
+    const game = snakeGames.get(ws.gameId);
+    if (!game) return;
+
+    switch(message.type) {
+        case 'move':
+            // Broadcast move to other player
+            const otherPlayer = game.players.find(p => p !== ws);
+            if (otherPlayer && otherPlayer.readyState === 1) {
+                otherPlayer.send(JSON.stringify({
+                    type: 'move',
+                    player: game.players.indexOf(ws) + 1,
+                    direction: message.direction
+                }));
+            }
+            break;
+
+        case 'gameOver':
+            game.players.forEach(player => {
+                if (player.readyState === 1) {
+                    player.send(JSON.stringify({
+                        type: 'gameOver',
+                        winner: message.winner
+                    }));
+                }
+            });
+            snakeGames.delete(ws.gameId);
+            break;
+    }
+}
+
+// Add this function to handle Pacman game messages
+function handlePacmanGame(ws, message) {
+    const game = pacmanGames.get(ws.gameId);
+    if (!game) return;
+
+    switch(message.type) {
+        case 'move':
+            // Broadcast move to other player
+            const otherPlayer = game.players.find(p => p !== ws);
+            if (otherPlayer && otherPlayer.readyState === 1) {
+                otherPlayer.send(JSON.stringify({
+                    type: 'move',
+                    player: game.players.indexOf(ws) + 1,
+                    direction: message.direction
+                }));
+            }
+            break;
+
+        case 'powerPellet':
+            // Sync power pellet collection
+            game.players.forEach(player => {
+                if (player.readyState === 1) {
+                    player.send(JSON.stringify({
+                        type: 'powerPellet',
+                        player: game.players.indexOf(ws) + 1
+                    }));
+                }
+            });
+            break;
+
+        case 'dotEaten':
+            // Sync dot collection
+            game.players.forEach(player => {
+                if (player.readyState === 1) {
+                    player.send(JSON.stringify({
+                        type: 'dotEaten',
+                        player: game.players.indexOf(ws) + 1,
+                        position: message.position
+                    }));
+                }
+            });
+            break;
+
+        case 'gameOver':
+            game.players.forEach(player => {
+                if (player.readyState === 1) {
+                    player.send(JSON.stringify({
+                        type: 'gameOver',
+                        winner: message.winner
+                    }));
+                }
+            });
+            pacmanGames.delete(ws.gameId);
+            break;
+    }
+}
+
+wss.on('connection', (ws, req) => {
+    const gameType = req.url.includes('/snake') ? 'snake' : 
+                    req.url.includes('/pacman') ? 'pacman' : 'tictactoe';
+    ws.gameType = gameType;
+
     playerCount++;
     ws.playerId = playerCount;
     
     // Send initial lobby state to new connection
     updateLobbyForAll();
     
-    // Handle new connections
-    if (waitingPlayer) {
-        startNewGame(waitingPlayer, ws);
-        waitingPlayer = null;
-        
-        // Check queue for next waiting player
-        if (waitingQueue.length > 0) {
-            waitingPlayer = waitingQueue.shift();
-            waitingPlayer.send(JSON.stringify({ 
-                type: 'status', 
-                message: 'Your turn is next! Waiting for opponent...'
-            }));
+    if (gameType === 'snake') {
+        if (waitingSnakePlayer) {
+            // Start new snake game
+            const gameId = Date.now();
+            snakeGames.set(gameId, {
+                players: [waitingSnakePlayer, ws]
+            });
+            
+            waitingSnakePlayer.gameId = gameId;
+            ws.gameId = gameId;
+            
+            // Assign players
+            waitingSnakePlayer.send(JSON.stringify({ type: 'init', player: 1 }));
+            ws.send(JSON.stringify({ type: 'init', player: 2 }));
+            
+            waitingSnakePlayer = null;
+        } else {
+            waitingSnakePlayer = ws;
         }
-        updateLobbyForAll();
-    } else {
-        waitingPlayer = ws;
-        updateLobbyForAll();
-    }
-    
-    ws.on('message', (message) => {
-        const data = JSON.parse(message);
-        const game = games.get(ws.gameId);
-        
-        if (!game) return;
-        
-        switch(data.type) {
-            case 'move':
-                const playerIndex = game.players.indexOf(ws);
-                const symbol = playerIndex === 0 ? 'X' : 'O';
-                
-                game.board[data.index] = symbol;
-                
-                // Broadcast move to both players
+
+        ws.on('message', (message) => {
+            try {
+                const data = JSON.parse(message);
+                handleSnakeGame(ws, data);
+            } catch (e) {
+                console.error('Error handling snake message:', e);
+            }
+        });
+
+        ws.on('close', () => {
+            if (waitingSnakePlayer === ws) {
+                waitingSnakePlayer = null;
+            }
+            if (ws.gameId && snakeGames.has(ws.gameId)) {
+                const game = snakeGames.get(ws.gameId);
                 game.players.forEach(player => {
-                    player.send(JSON.stringify({
-                        type: 'move',
-                        index: data.index,
-                        symbol: symbol
-                    }));
-                });
-                
-                // Check for winner
-                const winner = checkWinner(game.board);
-                if (winner || !game.board.includes(null)) {
-                    game.players.forEach(player => {
-                        player.send(JSON.stringify({
-                            type: 'gameOver',
-                            winner: winner
+                    if (player !== ws && player.readyState === 1) {
+                        player.send(JSON.stringify({ 
+                            type: 'gameOver', 
+                            winner: game.players.indexOf(player) === 0 ? 'Player 1' : 'Player 2'
                         }));
-                    });
-                    games.delete(ws.gameId);
-                }
-                break;
-                
-            case 'newGame':
-                // Handle new game request
-                games.delete(ws.gameId);
-                waitingQueue.push(ws);
-                ws.send(JSON.stringify({ 
-                    type: 'status', 
-                    message: `You are #${waitingQueue.length} in queue...`
-                }));
-                updateLobbyForAll();
-                break;
+                    }
+                });
+                snakeGames.delete(ws.gameId);
+            }
+        });
+    } else if (gameType === 'pacman') {
+        if (waitingPacmanPlayer) {
+            // Start new Pacman game
+            const gameId = Date.now();
+            pacmanGames.set(gameId, {
+                players: [waitingPacmanPlayer, ws]
+            });
+            
+            waitingPacmanPlayer.gameId = gameId;
+            ws.gameId = gameId;
+            
+            // Assign players
+            waitingPacmanPlayer.send(JSON.stringify({ type: 'init', player: 1 }));
+            ws.send(JSON.stringify({ type: 'init', player: 2 }));
+            
+            waitingPacmanPlayer = null;
+        } else {
+            waitingPacmanPlayer = ws;
         }
-    });
-    
-    ws.on('close', () => {
-        // Remove from queue if disconnected
-        waitingQueue = waitingQueue.filter(player => player !== ws);
-        
-        if (waitingPlayer === ws) {
+
+        ws.on('message', (message) => {
+            try {
+                const data = JSON.parse(message);
+                handlePacmanGame(ws, data);
+            } catch (e) {
+                console.error('Error handling pacman message:', e);
+            }
+        });
+
+        ws.on('close', () => {
+            if (waitingPacmanPlayer === ws) {
+                waitingPacmanPlayer = null;
+            }
+            if (ws.gameId && pacmanGames.has(ws.gameId)) {
+                const game = pacmanGames.get(ws.gameId);
+                game.players.forEach(player => {
+                    if (player !== ws && player.readyState === 1) {
+                        player.send(JSON.stringify({ 
+                            type: 'gameOver', 
+                            winner: game.players.indexOf(player) === 0 ? 'Player 1' : 'Player 2'
+                        }));
+                    }
+                });
+                pacmanGames.delete(ws.gameId);
+            }
+        });
+    } else {
+        // Tic-tac-toe logic
+        if (waitingPlayer) {
+            startNewGame(waitingPlayer, ws);
             waitingPlayer = null;
+            
+            // Check queue for next waiting player
             if (waitingQueue.length > 0) {
                 waitingPlayer = waitingQueue.shift();
                 waitingPlayer.send(JSON.stringify({ 
@@ -132,19 +257,85 @@ wss.on('connection', (ws) => {
                     message: 'Your turn is next! Waiting for opponent...'
                 }));
             }
+            updateLobbyForAll();
+        } else {
+            waitingPlayer = ws;
+            updateLobbyForAll();
         }
-        
-        if (ws.gameId && games.has(ws.gameId)) {
+
+        ws.on('message', (message) => {
+            const data = JSON.parse(message);
             const game = games.get(ws.gameId);
-            game.players.forEach(player => {
-                if (player !== ws && player.readyState === 1) {
-                    player.send(JSON.stringify({ type: 'gameOver', winner: null }));
+            
+            if (!game) return;
+            
+            switch(data.type) {
+                case 'move':
+                    const playerIndex = game.players.indexOf(ws);
+                    const symbol = playerIndex === 0 ? 'X' : 'O';
+                    
+                    game.board[data.index] = symbol;
+                    
+                    // Broadcast move to both players
+                    game.players.forEach(player => {
+                        player.send(JSON.stringify({
+                            type: 'move',
+                            index: data.index,
+                            symbol: symbol
+                        }));
+                    });
+                    
+                    // Check for winner
+                    const winner = checkWinner(game.board);
+                    if (winner || !game.board.includes(null)) {
+                        game.players.forEach(player => {
+                            player.send(JSON.stringify({
+                                type: 'gameOver',
+                                winner: winner
+                            }));
+                        });
+                        games.delete(ws.gameId);
+                    }
+                    break;
+                    
+                case 'newGame':
+                    games.delete(ws.gameId);
+                    waitingQueue.push(ws);
+                    ws.send(JSON.stringify({ 
+                        type: 'status', 
+                        message: `You are #${waitingQueue.length} in queue...`
+                    }));
+                    updateLobbyForAll();
+                    break;
+            }
+        });
+
+        ws.on('close', () => {
+            waitingQueue = waitingQueue.filter(player => player !== ws);
+            
+            if (waitingPlayer === ws) {
+                waitingPlayer = null;
+                if (waitingQueue.length > 0) {
+                    waitingPlayer = waitingQueue.shift();
+                    waitingPlayer.send(JSON.stringify({ 
+                        type: 'status', 
+                        message: 'Your turn is next! Waiting for opponent...'
+                    }));
                 }
-            });
-            games.delete(ws.gameId);
-        }
-        updateLobbyForAll();
-    });
+            }
+            
+            if (ws.gameId && games.has(ws.gameId)) {
+                const game = games.get(ws.gameId);
+                game.players.forEach(player => {
+                    if (player !== ws && player.readyState === 1) {
+                        player.send(JSON.stringify({ type: 'gameOver', winner: null }));
+                    }
+                });
+                games.delete(ws.gameId);
+            }
+            updateLobbyForAll();
+        });
+    }
 });
 
 function checkWinner(board) {

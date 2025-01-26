@@ -5,9 +5,9 @@ let gameOver = false;
 
 // Connect to WebSocket server
 function connect() {
-    // Use secure WebSocket when deployed
+    // Update WebSocket connection to work with the new route
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
+    const wsUrl = `${protocol}//${window.location.host}`;  // This should still work
     ws = new WebSocket(wsUrl);
     
     ws.onmessage = (event) => {

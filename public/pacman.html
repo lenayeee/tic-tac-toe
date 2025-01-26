@@ -4,13 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dual Pacman</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/games/pacman/pacman.css">
 </head>
 <body>
     <div class="container">
         <h1>Dual Pacman</h1>
-        <p>Coming Soon!</p>
+        <div id="status">Waiting for opponent...</div>
+        
+        <div class="game-container">
+            <div class="player-section">
+                <h2>Player 1 (WASD)</h2>
+                <canvas id="player1Canvas" width="448" height="496"></canvas>
+                <div class="score">Score: <span id="score1">0</span></div>
+            </div>
+            
+            <div class="player-section">
+                <h2>Player 2 (Arrow Keys)</h2>
+                <canvas id="player2Canvas" width="448" height="496"></canvas>
+                <div class="score">Score: <span id="score2">0</span></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <p>Player 1: Use WASD to move</p>
+            <p>Player 2: Use Arrow Keys to move</p>
+            <p>Eat all dots and power pellets. Last player standing wins!</p>
+        </div>
+        
         <button onclick="window.location.href='/'">Back to Games</button>
     </div>
+    <script src="/games/pacman/pacman.js"></script>
 </body>
 </html> 
