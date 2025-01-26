@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman Single Player</title>
+    <link rel="stylesheet" href="/games/pacman/pacman.css">
+    <style>
+        .single-player-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 20px auto;
+            max-width: 500px;
+        }
+
+        .high-score {
+            color: #ff0;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        .lives {
+            color: #ff0;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        .level {
+            color: #ff0;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pacman</h1>
+        
+        <div class="difficulty-select" id="difficultySelect">
+            <h3>Select Difficulty:</h3>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+                <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+                <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+            </div>
+            <p class="difficulty-desc" id="difficultyDesc">
+                Easy: Ghosts move randomly<br>
+                Medium: Ghosts sometimes chase player<br>
+                Hard: Ghosts actively hunt player
+            </p>
+        </div>
+
+        <div class="single-player-container">
+            <div class="high-score">High Score: <span id="highScore">0</span></div>
+            <div class="level">Level: <span id="level">1</span></div>
+            <div class="lives">Lives: <span id="lives">3</span></div>
+            <canvas id="gameCanvas" width="448" height="496"></canvas>
+            <div class="score">Score: <span id="score">0</span></div>
+        </div>
+
+        <div class="mobile-controls">
+            <div class="control-row">
+                <button class="control-btn up-btn" data-key="ArrowUp">↑</button>
+            </div>
+            <div class="control-row">
+                <button class="control-btn left-btn" data-key="ArrowLeft">←</button>
+                <button class="control-btn down-btn" data-key="ArrowDown">↓</button>
+                <button class="control-btn right-btn" data-key="ArrowRight">→</button>
+            </div>
+        </div>
+
+        <div class="game-rules">
+            <h4>How to Play:</h4>
+            <ul>
+                <li>Use Arrow Keys to move Pacman</li>
+                <li>Eat dots to score points (10 points each)</li>
+                <li>Eat power pellets to turn ghosts blue (50 points)</li>
+                <li>Eat blue ghosts for bonus points (200 points)</li>
+                <li>Avoid ghosts when they're not blue</li>
+                <li>Clear the maze to advance to next level</li>
+                <li>Game ends when you run out of lives</li>
+            </ul>
+        </div>
+        
+        <button onclick="window.location.href='/'">Back to Game Menu</button>
+    </div>
+    <script src="/games/pacman/pacman-single.js"></script>
+</body>
+</html> 

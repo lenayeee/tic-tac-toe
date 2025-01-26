@@ -9,16 +9,26 @@ class PacmanGame {
         this.tileSize = 16; // Each tile is 16x16 pixels
         this.score = 0;
         
-        // Pacman position and movement
+        // Set specific starting position for Pacman
+        const startTileX = 14;  // Center of maze
+        const startTileY = 23;  // Bottom area, on a path
+        
         this.pacman = {
-            x: 14 * this.tileSize,  // Center X position
-            y: 23 * this.tileSize,  // Starting position (moved up from bottom)
-            direction: 'right',
-            nextDirection: 'right',
+            x: startTileX * this.tileSize,
+            y: startTileY * this.tileSize,
+            direction: 'left',     // Start facing left
+            nextDirection: 'left', // Match initial direction
             speed: 2,
             mouthOpen: 0,
             mouthDir: 1
         };
+
+        // Verify starting position is valid
+        if (this.maze && this.maze[startTileY] && this.maze[startTileY][startTileX] !== 1) {
+            console.log('Pacman starting position valid');
+        } else {
+            console.error('Invalid Pacman starting position');
+        }
 
         // Ghost properties
         this.ghosts = [
@@ -502,6 +512,14 @@ class PacmanGame {
             }
         }
         return this.countdown === 0;
+    }
+
+    // Add a reset position method for when players die/respawn
+    resetPosition() {
+        this.pacman.x = 14 * this.tileSize;
+        this.pacman.y = 23 * this.tileSize;
+        this.pacman.direction = 'left';
+        this.pacman.nextDirection = 'left';
     }
 }
 

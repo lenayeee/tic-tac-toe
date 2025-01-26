@@ -377,6 +377,11 @@ app.get('/script.js', (req, res) => {
     res.sendFile(__dirname + '/public/script.js');
 });
 
+// Add new route for single player Pacman
+app.get('/pacman-single', (req, res) => {
+    res.sendFile(__dirname + '/public/games/pacman/pacman-single.html');
+});
+
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
