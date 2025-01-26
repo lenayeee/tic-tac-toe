@@ -162,8 +162,26 @@ function checkWinner(board) {
     return null;
 }
 
+// Add new routes
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
+});
+
+app.get('/tictactoe', (req, res) => {
+    res.sendFile(__dirname + '/public/tictactoe.html');
+});
+
+app.get('/pacman', (req, res) => {
+    res.sendFile(__dirname + '/public/pacman.html');
+});
+
+app.get('/snake', (req, res) => {
+    res.sendFile(__dirname + '/public/snake.html');
+});
+
+// Add a route for the script.js that tictactoe.html needs
+app.get('/script.js', (req, res) => {
+    res.sendFile(__dirname + '/public/script.js');
 });
 
 app.use((err, req, res, next) => {

@@ -3,33 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Tic-tac-toe</title>
+    <title>Multiplayer Games</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Tic-tac-toe</h1>
-        <div id="status">Waiting for opponent...</div>
-        <div class="board" id="board">
-            <div class="cell" data-index="0"></div>
-            <div class="cell" data-index="1"></div>
-            <div class="cell" data-index="2"></div>
-            <div class="cell" data-index="3"></div>
-            <div class="cell" data-index="4"></div>
-            <div class="cell" data-index="5"></div>
-            <div class="cell" data-index="6"></div>
-            <div class="cell" data-index="7"></div>
-            <div class="cell" data-index="8"></div>
-        </div>
-        <button id="newGame" class="disabled" onclick="requestNewGame()">New Game</button>
-        <div class="lobby">
-            <h2>Lobby</h2>
-            <div id="queueInfo">Players in game: 0</div>
-            <div id="playerList">
-                <div class="queue-position">No players waiting</div>
+        <h1>Multiplayer Games</h1>
+        <div class="game-selection">
+            <div class="game-card" onclick="window.location.href='/tictactoe'">
+                <h2>Tic Tac Toe</h2>
+                <p>Classic two-player game</p>
+                <div class="player-count">2 Players</div>
+            </div>
+            <div class="game-card" onclick="window.location.href='/pacman'">
+                <h2>Dual Pacman</h2>
+                <p>Last player standing wins!</p>
+                <div class="player-count">2 Players</div>
+            </div>
+            <div class="game-card" onclick="window.location.href='/snake'">
+                <h2>Battle Snake</h2>
+                <p>Survive longer than your opponent</p>
+                <div class="player-count">2 Players</div>
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
 </body>
 </html> 
