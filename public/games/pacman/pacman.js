@@ -73,6 +73,13 @@ class PacmanGame {
                 scatterTime: 100    // Short scatter time
             }
         };
+
+        // Add warm-up mode flag
+        this.isWarmup = true;
+        
+        // Add countdown properties
+        this.countdown = 10;
+        this.lastCountdownTime = 0;
     }
 
     initializeMaze() {
@@ -480,6 +487,20 @@ class PacmanGame {
             ghost.speed = settings.speed;
         });
     }
+
+    // Add method to handle countdown
+    updateCountdown() {
+        if (this.countdown > 0) {
+            const currentTime = Date.now();
+            if (currentTime - this.lastCountdownTime >= 1000) {
+                this.countdown--;
+                this.lastCountdownTime = currentTime;
+                document.getElementById('status').textContent = 
+                    `Game starting in ${this.countdown} seconds...`;
+            }
+        }
+        return this.countdown === 0;
+    }
 }
 
 // Game setup
@@ -657,9 +678,16 @@ function handleGameMessage(data) {
     switch(data.type) {
         case 'init':
             isPlayer1 = data.player === 1;
-            document.getElementById('status').textContent = 'Game Started! ' + 
-                (isPlayer1 ? 'You are Player 1 (WASD)' : 'You are Player 2 (Arrow Keys)');
-            startGameLoop();
+            // Start in warm-up mode
+            document.getElementById('status').textContent = 
+                'Warm-up mode - waiting for Player ' + (isPlayer1 ? '2' : '1');
+            startWarmupMode();
+            break;
+            
+        case 'playerJoined':
+            // Start countdown when other player joins
+            document.getElementById('status').textContent = 'Game starting in 10 seconds...';
+            startCountdown();
             break;
             
         case 'move':
@@ -695,16 +723,60 @@ function handleGameMessage(data) {
     }
 }
 
+function startWarmupMode() {
+    if (gameLoop) clearInterval(gameLoop);
+    
+    const currentPlayer = isPlayer1 ? player1 : player2;
+    currentPlayer.isWarmup = true;
+    
+    gameLoop = setInterval(() => {
+        currentPlayer.update();
+        currentPlayer.draw();
+        document.getElementById(`score${isPlayer1 ? '1' : '2'}`).textContent = 
+            currentPlayer.score;
+    }, 1000/60);
+}
+
+function startCountdown() {
+    player1.countdown = 10;
+    player2.countdown = 10;
+    player1.lastCountdownTime = Date.now();
+    player2.lastCountdownTime = Date.now();
+    
+    if (gameLoop) clearInterval(gameLoop);
+    
+    gameLoop = setInterval(() => {
+        // Update both players during countdown
+        player1.update();
+        player2.update();
+        player1.draw();
+        player2.draw();
+        
+        // Update scores
+        document.getElementById('score1').textContent = player1.score;
+        document.getElementById('score2').textContent = player2.score;
+        
+        // Check if countdown is finished
+        if (player1.updateCountdown()) {
+            // Start actual game
+            player1.isWarmup = false;
+            player2.isWarmup = false;
+            startGameLoop();
+        }
+    }, 1000/60);
+}
+
 function startGameLoop() {
     if (gameLoop) clearInterval(gameLoop);
     
-    document.getElementById('status').textContent = isPlayer1 ? 
-        'You are Player 1 (WASD)' : 
-        'You are Player 2 (Arrow Keys)';
+    document.getElementById('status').textContent = 'Game On!';
     
     gameLoop = setInterval(() => {
-        player1.update();
-        player2.update();
+        // Only update player positions if not in warm-up
+        if (!player1.isWarmup && !player2.isWarmup) {
+            player1.update();
+            player2.update();
+        }
         
         player1.draw();
         player2.draw();
@@ -714,7 +786,8 @@ function startGameLoop() {
         document.getElementById('score2').textContent = player2.score;
 
         // Check for game over conditions
-        if (!player1.alive || !player2.alive) {
+        if (!player1.isWarmup && !player2.isWarmup && 
+            (!player1.alive || !player2.alive)) {
             let winner;
             if (!player1.alive && !player2.alive) {
                 // Both dead, highest score wins
@@ -740,7 +813,7 @@ function startGameLoop() {
             }));
             clearInterval(gameLoop);
         }
-    }, 1000/60); // 60 FPS
+    }, 1000/60);
 }
 
 // Start the game

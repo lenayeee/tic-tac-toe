@@ -336,6 +336,16 @@ wss.on('connection', (ws, req) => {
             updateLobbyForAll();
         });
     }
+
+    // When second player joins
+    if (game.players.length === 2) {
+        // Notify both players that game is starting
+        game.players.forEach(player => {
+            player.send(JSON.stringify({
+                type: 'playerJoined'
+            }));
+        });
+    }
 });
 
 function checkWinner(board) {
