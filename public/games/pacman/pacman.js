@@ -9,9 +9,12 @@ class PacmanGame {
         this.tileSize = 16; // Each tile is 16x16 pixels
         this.score = 0;
         
+        // Initialize the maze first
+        this.initializeMaze();
+
         // Set specific starting position for Pacman
         const startTileX = 14;  // Center of maze
-        const startTileY = 23;  // Bottom area, on a path
+        const startTileY = 26;  // Bottom path position
         
         this.pacman = {
             x: startTileX * this.tileSize,
@@ -24,10 +27,13 @@ class PacmanGame {
         };
 
         // Verify starting position is valid
-        if (this.maze && this.maze[startTileY] && this.maze[startTileY][startTileX] !== 1) {
+        if (this.maze[startTileY] && this.maze[startTileY][startTileX] === 2) {  // Should be on a dot
             console.log('Pacman starting position valid');
         } else {
             console.error('Invalid Pacman starting position');
+            // Fallback to a known valid position if needed
+            this.pacman.x = 14 * this.tileSize;
+            this.pacman.y = 26 * this.tileSize;
         }
 
         // Ghost properties
@@ -43,9 +49,6 @@ class PacmanGame {
         this.powerModeTimer = 0;
         this.alive = true;
         
-        // Initialize the maze
-        this.initializeMaze();
-
         // Add classic Pacman sounds
         this.sounds = {
             start: new Audio('/games/pacman/sounds/game_start.wav'),
@@ -517,7 +520,7 @@ class PacmanGame {
     // Add a reset position method for when players die/respawn
     resetPosition() {
         this.pacman.x = 14 * this.tileSize;
-        this.pacman.y = 23 * this.tileSize;
+        this.pacman.y = 26 * this.tileSize;
         this.pacman.direction = 'left';
         this.pacman.nextDirection = 'left';
     }
