@@ -1,3 +1,6 @@
+// Add this at the top of the file to check if it's loading
+console.log('Pacman game initializing...');
+
 class PacmanGame {
     constructor(canvas, color) {
         this.canvas = canvas;
@@ -265,11 +268,12 @@ let isPlayer1 = false;
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/pacman`;
+    console.log('Attempting to connect to:', wsUrl);
+    
     ws = new WebSocket(wsUrl);
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleGameMessage(data);
+    ws.onopen = () => {
+        console.log('WebSocket connected successfully');
     };
 
     ws.onerror = (error) => {
