@@ -188,4 +188,49 @@ h2 {
         height: 100%;
         overflow: hidden;
     }
+}
+
+.difficulty-select {
+    background: #000;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px auto;
+    max-width: 400px;
+}
+
+.difficulty-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.difficulty-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #00f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.difficulty-btn:hover {
+    background: #0000cc;
+}
+
+.difficulty-btn.selected {
+    background: #ff0;
+    color: #000;
+}
+
+.difficulty-desc {
+    color: #ff0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Hide game container initially */
+.game-container {
+    display: none;
 } 

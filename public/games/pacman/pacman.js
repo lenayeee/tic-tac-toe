@@ -36,12 +36,42 @@ class PacmanGame {
         // Initialize the maze
         this.initializeMaze();
 
-        // Add sound effects
+        // Add classic Pacman sounds
         this.sounds = {
+            start: new Audio('/games/pacman/sounds/game_start.wav'),
             chomp: new Audio('/games/pacman/sounds/chomp.wav'),
+            death: new Audio('/games/pacman/sounds/death.wav'),
             powerPellet: new Audio('/games/pacman/sounds/power_pellet.wav'),
             ghostEaten: new Audio('/games/pacman/sounds/ghost_eaten.wav'),
-            death: new Audio('/games/pacman/sounds/death.wav')
+            ghostRetreat: new Audio('/games/pacman/sounds/retreat.wav'),
+            victory: new Audio('/games/pacman/sounds/victory.wav')
+        };
+
+        // Preload sounds
+        Object.values(this.sounds).forEach(sound => {
+            sound.load();
+        });
+
+        // Add difficulty setting
+        this.difficulty = 'medium'; // default
+        
+        // Ghost behavior settings
+        this.ghostSettings = {
+            easy: {
+                speed: 1,
+                chaseChance: 0.1,  // 10% chance to chase
+                scatterTime: 300    // Longer scatter time
+            },
+            medium: {
+                speed: 1.5,
+                chaseChance: 0.4,   // 40% chance to chase
+                scatterTime: 200    // Medium scatter time
+            },
+            hard: {
+                speed: 2,
+                chaseChance: 0.8,   // 80% chance to chase
+                scatterTime: 100    // Short scatter time
+            }
         };
     }
 
@@ -75,7 +105,8 @@ class PacmanGame {
             [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
             [1,2,1,1,1,1,1,1,1,1,1,1,2,1,1,2,1,1,1,1,1,1,1,1,1,1,2,1],
             [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,2,1,1,1,1,1,1,4,4,1,1,1,1,1,1,2,1,1,1,1,1,1]
         ];
     }
 
@@ -231,6 +262,21 @@ class PacmanGame {
         );
         this.ctx.lineTo(this.pacman.x + this.tileSize/2, this.pacman.y + this.tileSize/2);
         this.ctx.fill();
+
+        // Draw ghost house door
+        for (let y = 0; y < this.maze.length; y++) {
+            for (let x = 0; x < this.maze[y].length; x++) {
+                if (this.maze[y][x] === 4) {
+                    this.ctx.fillStyle = '#ffb852';  // Door color
+                    this.ctx.fillRect(
+                        x * this.tileSize, 
+                        y * this.tileSize + this.tileSize/2, 
+                        this.tileSize, 
+                        this.tileSize/4
+                    );
+                }
+            }
+        }
     }
 
     getDirectionAngle() {
@@ -243,41 +289,158 @@ class PacmanGame {
     }
 
     updateGhosts() {
-        this.ghosts.forEach(ghost => {
-            // Simple ghost movement - can be improved
-            const directions = ['up', 'down', 'left', 'right'];
-            const validDirections = directions.filter(dir => this.isValidMove(ghost, dir));
-            
-            if (validDirections.length > 0) {
-                // Randomly choose a valid direction
-                ghost.direction = validDirections[Math.floor(Math.random() * validDirections.length)];
+        const settings = this.ghostSettings[this.difficulty];
+        
+        this.ghosts.forEach((ghost, index) => {
+            if (this.powerMode) {
+                // Run away from Pacman when in power mode
+                this.moveGhostAway(ghost);
+                return;
             }
 
-            // Move ghost
-            switch(ghost.direction) {
-                case 'up': ghost.y -= 1; break;
-                case 'down': ghost.y += 1; break;
-                case 'left': ghost.x -= 1; break;
-                case 'right': ghost.x += 1; break;
+            // Different behaviors for each ghost
+            if (Math.random() < settings.chaseChance) {
+                switch(index) {
+                    case 0: // Red ghost - direct chase
+                        this.chaseTarget(ghost, this.pacman);
+                        break;
+                    case 1: // Pink ghost - intercept
+                        const target = this.getInterceptPoint();
+                        this.chaseTarget(ghost, target);
+                        break;
+                    case 2: // Blue ghost - flank
+                        this.flankPacman(ghost);
+                        break;
+                    case 3: // Orange ghost - random with occasional chase
+                        if (Math.random() < 0.3) {
+                            this.chaseTarget(ghost, this.pacman);
+                        } else {
+                            this.moveRandomly(ghost);
+                        }
+                        break;
+                }
+            } else {
+                this.moveRandomly(ghost);
             }
         });
+    }
+
+    chaseTarget(ghost, target) {
+        const dx = target.x - ghost.x;
+        const dy = target.y - ghost.y;
+        const directions = [];
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            directions.push(dx > 0 ? 'right' : 'left');
+            directions.push(dy > 0 ? 'down' : 'up');
+        } else {
+            directions.push(dy > 0 ? 'down' : 'up');
+            directions.push(dx > 0 ? 'right' : 'left');
+        }
+
+        // Try primary direction first, then secondary
+        for (let dir of directions) {
+            if (this.isValidMove(ghost, dir)) {
+                this.moveGhost(ghost, dir);
+                return;
+            }
+        }
+
+        // If no preferred direction is valid, move randomly
+        this.moveRandomly(ghost);
+    }
+
+    moveGhostAway(ghost) {
+        const dx = ghost.x - this.pacman.x;
+        const dy = ghost.y - this.pacman.y;
+        const directions = [];
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            directions.push(dx < 0 ? 'left' : 'right');
+            directions.push(dy < 0 ? 'up' : 'down');
+        } else {
+            directions.push(dy < 0 ? 'up' : 'down');
+            directions.push(dx < 0 ? 'left' : 'right');
+        }
+
+        for (let dir of directions) {
+            if (this.isValidMove(ghost, dir)) {
+                this.moveGhost(ghost, dir);
+                return;
+            }
+        }
+
+        this.moveRandomly(ghost);
+    }
+
+    getInterceptPoint() {
+        // Predict where Pacman will be in a few steps
+        const steps = 4;
+        const predictedX = this.pacman.x + (steps * this.pacman.speed * 
+            (this.pacman.direction === 'right' ? 1 : this.pacman.direction === 'left' ? -1 : 0));
+        const predictedY = this.pacman.y + (steps * this.pacman.speed * 
+            (this.pacman.direction === 'down' ? 1 : this.pacman.direction === 'up' ? -1 : 0));
+        
+        return { x: predictedX, y: predictedY };
+    }
+
+    flankPacman(ghost) {
+        // Move to Pacman's side
+        const offset = 4 * this.tileSize;
+        const target = {
+            x: this.pacman.x + (Math.random() < 0.5 ? offset : -offset),
+            y: this.pacman.y + (Math.random() < 0.5 ? offset : -offset)
+        };
+        this.chaseTarget(ghost, target);
+    }
+
+    moveRandomly(ghost) {
+        const directions = ['up', 'down', 'left', 'right'];
+        const validDirections = directions.filter(dir => this.isValidMove(ghost, dir));
+        
+        if (validDirections.length > 0) {
+            const dir = validDirections[Math.floor(Math.random() * validDirections.length)];
+            this.moveGhost(ghost, dir);
+        }
+    }
+
+    moveGhost(ghost, direction) {
+        const settings = this.ghostSettings[this.difficulty];
+        switch(direction) {
+            case 'up': ghost.y -= settings.speed; break;
+            case 'down': ghost.y += settings.speed; break;
+            case 'left': ghost.x -= settings.speed; break;
+            case 'right': ghost.x += settings.speed; break;
+        }
+        ghost.direction = direction;
     }
 
     isValidMove(entity, direction) {
         let nextX = entity.x;
         let nextY = entity.y;
+        const margin = 2; // Add a small margin for better collision
 
         switch(direction) {
-            case 'up': nextY -= this.tileSize; break;
-            case 'down': nextY += this.tileSize; break;
-            case 'left': nextX -= this.tileSize; break;
-            case 'right': nextX += this.tileSize; break;
+            case 'up': nextY -= this.pacman.speed; break;
+            case 'down': nextY += this.pacman.speed; break;
+            case 'left': nextX -= this.pacman.speed; break;
+            case 'right': nextX += this.pacman.speed; break;
         }
 
-        const tileX = Math.floor(nextX / this.tileSize);
-        const tileY = Math.floor(nextY / this.tileSize);
+        // Check all corners of the entity
+        const points = [
+            { x: nextX + margin, y: nextY + margin },
+            { x: nextX + this.tileSize - margin, y: nextY + margin },
+            { x: nextX + margin, y: nextY + this.tileSize - margin },
+            { x: nextX + this.tileSize - margin, y: nextY + this.tileSize - margin }
+        ];
 
-        return this.maze[tileY] && this.maze[tileY][tileX] !== 1;
+        // If any corner hits a wall, movement is invalid
+        return !points.some(point => {
+            const tileX = Math.floor(point.x / this.tileSize);
+            const tileY = Math.floor(point.y / this.tileSize);
+            return !this.maze[tileY] || this.maze[tileY][tileX] === 1;
+        });
     }
 
     checkCollisions() {
@@ -307,6 +470,15 @@ class PacmanGame {
                 this.powerMode = false;
             }
         }
+    }
+
+    setDifficulty(level) {
+        this.difficulty = level;
+        // Update ghost speeds
+        const settings = this.ghostSettings[level];
+        this.ghosts.forEach(ghost => {
+            ghost.speed = settings.speed;
+        });
     }
 }
 
@@ -372,6 +544,27 @@ function initMobileControls() {
     });
 }
 
+function initDifficultySelect() {
+    const difficultySelect = document.getElementById('difficultySelect');
+    const buttons = document.querySelectorAll('.difficulty-btn');
+    const gameContainer = document.querySelector('.game-container');
+
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            const difficulty = button.dataset.difficulty;
+            player1.setDifficulty(difficulty);
+            player2.setDifficulty(difficulty);
+            
+            // Hide difficulty select and show game
+            difficultySelect.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            
+            // Start the game
+            startGameLoop();
+        });
+    });
+}
+
 function initGame() {
     const canvas1 = document.getElementById('player1Canvas');
     const canvas2 = document.getElementById('player2Canvas');
@@ -402,9 +595,17 @@ function initGame() {
 
     document.addEventListener('keydown', handleKeyPress);
     initMobileControls();
+    initDifficultySelect();
 }
 
 function handleKeyPress(event) {
+    // Prevent scrolling with arrow keys
+    if (event.key.includes('Arrow') || 
+        event.key.toLowerCase() === 'w' || 
+        event.key.toLowerCase() === 's') {
+        event.preventDefault();
+    }
+
     let newDirection;
     let currentPlayer;
 

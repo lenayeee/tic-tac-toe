@@ -11,6 +11,20 @@
         <h1>Two-Player Pacman Battle</h1>
         <div id="status">Waiting for your friend to join...</div>
         
+        <div class="difficulty-select" id="difficultySelect">
+            <h3>Select Difficulty:</h3>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+                <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+                <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+            </div>
+            <p class="difficulty-desc" id="difficultyDesc">
+                Easy: Ghosts move randomly<br>
+                Medium: Ghosts sometimes chase players<br>
+                Hard: Ghosts actively hunt players
+            </p>
+        </div>
+
         <div class="game-container">
             <div class="player-section">
                 <h2>Player 1 (WASD Keys)</h2>
