@@ -133,4 +133,41 @@
     padding: 5px 15px;
     border-radius: 15px;
     font-size: 0.9em;
+}
+
+.intro {
+    font-size: 1.2em;
+    margin: 20px 0;
+    color: #666;
+}
+
+.game-rules {
+    text-align: left;
+    padding: 10px 20px;
+    margin: 10px 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+}
+
+.game-rules li {
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
+.how-to-play {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+
+.how-to-play ol {
+    text-align: left;
+    padding: 0 40px;
+}
+
+.how-to-play li {
+    margin: 10px 0;
+    font-size: 1.1em;
 } 

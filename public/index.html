@@ -3,28 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Games</title>
+    <title>Fun Online Games with Friends</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Multiplayer Games</h1>
+        <h1>Play Games with Friends Online!</h1>
+        <p class="intro">Pick a game below and play with a friend anywhere in the world! Just share the game's link with them.</p>
+        
         <div class="game-selection">
             <div class="game-card" onclick="window.location.href='/tictactoe'">
                 <h2>Tic Tac Toe</h2>
-                <p>Classic two-player game</p>
-                <div class="player-count">2 Players</div>
+                <p>Take turns placing X's and O's. Get three in a row to win!</p>
+                <ul class="game-rules">
+                    <li>Play against a friend online</li>
+                    <li>First player is X, second is O</li>
+                    <li>Line up three marks to win</li>
+                </ul>
+                <div class="player-count">2 Players Online</div>
             </div>
+
             <div class="game-card" onclick="window.location.href='/pacman'">
-                <h2>Dual Pacman</h2>
-                <p>Last player standing wins!</p>
-                <div class="player-count">2 Players</div>
+                <h2>Two-Player Pacman</h2>
+                <p>Race against your friend to eat the most dots!</p>
+                <ul class="game-rules">
+                    <li>Player 1 uses WASD keys to move</li>
+                    <li>Player 2 uses Arrow keys</li>
+                    <li>Eat dots to score points</li>
+                    <li>Big dots make you super-powered</li>
+                    <li>Avoid ghosts unless super-powered</li>
+                    <li>Last player alive wins!</li>
+                </ul>
+                <div class="player-count">2 Players Online</div>
             </div>
+
             <div class="game-card" onclick="window.location.href='/snake'">
-                <h2>Battle Snake</h2>
-                <p>Survive longer than your opponent</p>
-                <div class="player-count">2 Players</div>
+                <h2>Snake Battle</h2>
+                <p>Grow your snake and try to survive longer than your friend!</p>
+                <ul class="game-rules">
+                    <li>Player 1 uses WASD keys</li>
+                    <li>Player 2 uses Arrow keys</li>
+                    <li>Eat food to grow longer</li>
+                    <li>Don't hit the walls</li>
+                    <li>Don't crash into yourself</li>
+                    <li>Last snake alive wins!</li>
+                </ul>
+                <div class="player-count">2 Players Online</div>
             </div>
+        </div>
+
+        <div class="how-to-play">
+            <h2>How to Play with Friends</h2>
+            <ol>
+                <li>Pick any game you want to play</li>
+                <li>Copy the game's web address (URL)</li>
+                <li>Send it to your friend</li>
+                <li>When they open the link, you'll play together!</li>
+            </ol>
         </div>
     </div>
 </body>
