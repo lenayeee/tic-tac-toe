@@ -43,7 +43,13 @@
     cursor: pointer;
 }
 
-#newGame:hover {
+#newGame.disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#newGame:hover:not(.disabled) {
     background-color: #45a049;
 }
 

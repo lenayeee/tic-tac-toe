@@ -20,7 +20,7 @@ function connect() {
                 playerSymbol = data.symbol;
                 isMyTurn = data.symbol === 'X';
                 document.getElementById('status').textContent = isMyTurn ? 'Your turn' : "Opponent's turn";
-                document.getElementById('newGame').style.display = 'none';
+                document.getElementById('newGame').classList.add('disabled');
                 break;
                 
             case 'move':
@@ -34,7 +34,7 @@ function connect() {
                 document.getElementById('status').textContent = data.winner ? 
                     `Game Over! ${data.winner === playerSymbol ? 'You won!' : 'Opponent won!'}` : 
                     'Game Over! It\'s a draw!';
-                document.getElementById('newGame').style.display = 'block';
+                document.getElementById('newGame').classList.remove('disabled');
                 break;
                 
             case 'status':
@@ -78,9 +78,9 @@ function clearBoard() {
 }
 
 function requestNewGame() {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN && gameOver) {
         ws.send(JSON.stringify({ type: 'newGame' }));
-        document.getElementById('newGame').style.display = 'none';
+        document.getElementById('newGame').classList.add('disabled');
         document.getElementById('status').textContent = 'Finding new opponent...';
         clearBoard();
     }
