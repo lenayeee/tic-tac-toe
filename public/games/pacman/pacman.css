@@ -115,4 +115,77 @@ h2 {
 .tip p {
     margin: 5px 0;
     color: #ff0;
+}
+
+/* Mobile controls */
+.mobile-controls {
+    display: none; /* Hidden by default on desktop */
+    width: 100%;
+    margin-top: 20px;
+    gap: 20px;
+    justify-content: space-around;
+}
+
+.player1-controls, .player2-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-row {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.control-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .game-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    canvas {
+        width: 100%;
+        max-width: 448px;
+        height: auto;
+    }
+
+    .mobile-controls {
+        display: flex;
+    }
+
+    .player-instructions {
+        display: none; /* Hide keyboard instructions on mobile */
+    }
+}
+
+/* Prevent scrolling/zooming on mobile */
+@media (max-width: 768px) {
+    body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
 } 

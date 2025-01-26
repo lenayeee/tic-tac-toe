@@ -96,23 +96,63 @@ class PacmanGame {
         if (this.pacman.mouthOpen >= 0.5) this.pacman.mouthDir = -1;
         if (this.pacman.mouthOpen <= 0) this.pacman.mouthDir = 1;
 
+        // Get current tile position
+        const currentTileX = Math.round(this.pacman.x / this.tileSize);
+        const currentTileY = Math.round(this.pacman.y / this.tileSize);
+        
+        // Perfect alignment coordinates
+        const perfectX = currentTileX * this.tileSize;
+        const perfectY = currentTileY * this.tileSize;
+        
+        // Check if we're close to perfect alignment
+        const isAlignedX = Math.abs(this.pacman.x - perfectX) < this.pacman.speed;
+        const isAlignedY = Math.abs(this.pacman.y - perfectY) < this.pacman.speed;
+
+        // If we're aligned and there's a queued direction, try to change direction
+        if (isAlignedX && isAlignedY) {
+            // Snap to grid when aligned
+            this.pacman.x = perfectX;
+            this.pacman.y = perfectY;
+
+            // Check if we can move in the next direction
+            let canChangeDirection = false;
+            let nextTileX = currentTileX;
+            let nextTileY = currentTileY;
+
+            switch(this.pacman.nextDirection) {
+                case 'up': nextTileY--; break;
+                case 'down': nextTileY++; break;
+                case 'left': nextTileX--; break;
+                case 'right': nextTileX++; break;
+            }
+
+            // Check if the next tile in the desired direction is valid
+            if (this.maze[nextTileY] && this.maze[nextTileY][nextTileX] !== 1) {
+                this.pacman.direction = this.pacman.nextDirection;
+                canChangeDirection = true;
+            }
+
+            // If we can't change to the desired direction, try to continue in current direction
+            if (!canChangeDirection) {
+                nextTileX = currentTileX;
+                nextTileY = currentTileY;
+                switch(this.pacman.direction) {
+                    case 'up': nextTileY--; break;
+                    case 'down': nextTileY++; break;
+                    case 'left': nextTileX--; break;
+                    case 'right': nextTileX++; break;
+                }
+                
+                // If we can't continue in current direction, stop
+                if (!this.maze[nextTileY] || this.maze[nextTileY][nextTileX] === 1) {
+                    return;
+                }
+            }
+        }
+
         // Move Pacman
         let nextX = this.pacman.x;
         let nextY = this.pacman.y;
-
-        // Align to grid when changing direction
-        const currentTileX = Math.floor(this.pacman.x / this.tileSize);
-        const currentTileY = Math.floor(this.pacman.y / this.tileSize);
-        const alignedX = currentTileX * this.tileSize;
-        const alignedY = currentTileY * this.tileSize;
-
-        // Only allow direction changes when aligned to grid
-        if (Math.abs(this.pacman.x - alignedX) < this.pacman.speed && 
-            Math.abs(this.pacman.y - alignedY) < this.pacman.speed) {
-            this.pacman.x = alignedX;
-            this.pacman.y = alignedY;
-            this.pacman.direction = this.pacman.nextDirection;
-        }
 
         switch(this.pacman.direction) {
             case 'right': nextX += this.pacman.speed; break;
@@ -129,7 +169,7 @@ class PacmanGame {
             this.pacman.x = nextX;
             this.pacman.y = nextY;
 
-            // Collect dots and power pellets
+            // Handle dot collection
             if (this.maze[nextTileY][nextTileX] === 2) {
                 this.maze[nextTileY][nextTileX] = 0;
                 this.score += 10;
@@ -149,6 +189,13 @@ class PacmanGame {
                     position: { x: nextTileX, y: nextTileY }
                 }));
             }
+        }
+
+        // Handle tunnel wrapping
+        if (this.pacman.x < 0) {
+            this.pacman.x = this.canvas.width - this.tileSize;
+        } else if (this.pacman.x >= this.canvas.width) {
+            this.pacman.x = 0;
         }
     }
 
@@ -315,9 +362,55 @@ function connect() {
     };
 }
 
+function initMobileControls() {
+    const buttons = document.querySelectorAll('.control-btn');
+    
+    buttons.forEach(button => {
+        // Handle touch start
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent default touch behavior
+            const key = button.getAttribute('data-key');
+            
+            // Create and dispatch a keyboard event
+            const event = new KeyboardEvent('keydown', {
+                key: key,
+                bubbles: true
+            });
+            document.dispatchEvent(event);
+        });
+
+        // Handle touch end
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        });
+
+        // Prevent default touch behavior
+        button.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        });
+    });
+}
+
 function initGame() {
     const canvas1 = document.getElementById('player1Canvas');
     const canvas2 = document.getElementById('player2Canvas');
+
+    // Scale canvas for mobile
+    function resizeCanvas() {
+        if (window.innerWidth <= 768) {
+            const maxWidth = Math.min(window.innerWidth - 20, 448);
+            const scale = maxWidth / 448;
+            
+            [canvas1, canvas2].forEach(canvas => {
+                canvas.style.width = `${maxWidth}px`;
+                canvas.style.height = `${496 * scale}px`;
+            });
+        }
+    }
+
+    // Call once and add resize listener
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
     player1 = new PacmanGame(canvas1, '#ffff00');
     player2 = new PacmanGame(canvas2, '#00ffff');
@@ -327,6 +420,7 @@ function initGame() {
     player2.draw();
 
     document.addEventListener('keydown', handleKeyPress);
+    initMobileControls();
 }
 
 function handleKeyPress(event) {
