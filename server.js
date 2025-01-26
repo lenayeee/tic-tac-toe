@@ -133,9 +133,11 @@ function handlePacmanGame(ws, message) {
 }
 
 wss.on('connection', (ws, req) => {
+    console.log('New connection established');  // Add logging
     const gameType = req.url.includes('/snake') ? 'snake' : 
                     req.url.includes('/pacman') ? 'pacman' : 'tictactoe';
     ws.gameType = gameType;
+    console.log('Game type:', gameType);  // Add logging
 
     playerCount++;
     ws.playerId = playerCount;
@@ -336,16 +338,6 @@ wss.on('connection', (ws, req) => {
             updateLobbyForAll();
         });
     }
-
-    // When second player joins
-    if (game.players.length === 2) {
-        // Notify both players that game is starting
-        game.players.forEach(player => {
-            player.send(JSON.stringify({
-                type: 'playerJoined'
-            }));
-        });
-    }
 });
 
 function checkWinner(board) {
@@ -395,5 +387,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 }).on('error', (err) => {
-    console.error('Server error:', err);
+    console.error('Server startup error:', err);  // Enhanced error logging
 }); 
