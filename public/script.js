@@ -1,6 +1,7 @@
 let ws;
 let playerSymbol;
 let isMyTurn = false;
+let gameOver = false;
 
 // Connect to WebSocket server
 function connect() {
@@ -14,9 +15,12 @@ function connect() {
         
         switch(data.type) {
             case 'init':
+                gameOver = false;
+                clearBoard();
                 playerSymbol = data.symbol;
                 isMyTurn = data.symbol === 'X';
                 document.getElementById('status').textContent = isMyTurn ? 'Your turn' : "Opponent's turn";
+                document.getElementById('newGame').style.display = 'none';
                 break;
                 
             case 'move':
@@ -26,9 +30,15 @@ function connect() {
                 break;
                 
             case 'gameOver':
+                gameOver = true;
                 document.getElementById('status').textContent = data.winner ? 
                     `Game Over! ${data.winner === playerSymbol ? 'You won!' : 'Opponent won!'}` : 
                     'Game Over! It\'s a draw!';
+                document.getElementById('newGame').style.display = 'block';
+                break;
+                
+            case 'status':
+                document.getElementById('status').textContent = data.message;
                 break;
         }
     };
@@ -60,6 +70,20 @@ document.getElementById('board').addEventListener('click', (e) => {
 function handleMove(index, symbol) {
     const cell = document.querySelector(`[data-index="${index}"]`);
     cell.textContent = symbol;
+}
+
+function clearBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach(cell => cell.textContent = '');
+}
+
+function requestNewGame() {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'newGame' }));
+        document.getElementById('newGame').style.display = 'none';
+        document.getElementById('status').textContent = 'Finding new opponent...';
+        clearBoard();
+    }
 }
 
 // Connect when page loads

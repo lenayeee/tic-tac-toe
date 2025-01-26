@@ -10,25 +10,38 @@ app.use(express.static('public'));
 
 const games = new Map();
 let waitingPlayer = null;
+let waitingQueue = []; // Add queue for waiting players
+
+// Add function to start new game
+function startNewGame(player1, player2) {
+    const gameId = Date.now();
+    games.set(gameId, {
+        players: [player1, player2],
+        board: Array(9).fill(null),
+        currentPlayer: 0
+    });
+    
+    player1.gameId = gameId;
+    player2.gameId = gameId;
+    
+    player1.send(JSON.stringify({ type: 'init', symbol: 'X' }));
+    player2.send(JSON.stringify({ type: 'init', symbol: 'O' }));
+}
 
 wss.on('connection', (ws) => {
+    // Handle new connections
     if (waitingPlayer) {
-        // Start new game
-        const gameId = Date.now();
-        games.set(gameId, {
-            players: [waitingPlayer, ws],
-            board: Array(9).fill(null),
-            currentPlayer: 0
-        });
-        
-        // Assign symbols
-        waitingPlayer.gameId = gameId;
-        ws.gameId = gameId;
-        
-        waitingPlayer.send(JSON.stringify({ type: 'init', symbol: 'X' }));
-        ws.send(JSON.stringify({ type: 'init', symbol: 'O' }));
-        
+        startNewGame(waitingPlayer, ws);
         waitingPlayer = null;
+        
+        // Check queue for next waiting player
+        if (waitingQueue.length > 0) {
+            waitingPlayer = waitingQueue.shift();
+            waitingPlayer.send(JSON.stringify({ 
+                type: 'status', 
+                message: 'Your turn is next! Waiting for opponent...'
+            }));
+        }
     } else {
         waitingPlayer = ws;
     }
@@ -39,39 +52,62 @@ wss.on('connection', (ws) => {
         
         if (!game) return;
         
-        if (data.type === 'move') {
-            const playerIndex = game.players.indexOf(ws);
-            const symbol = playerIndex === 0 ? 'X' : 'O';
-            
-            game.board[data.index] = symbol;
-            
-            // Broadcast move to both players
-            game.players.forEach(player => {
-                player.send(JSON.stringify({
-                    type: 'move',
-                    index: data.index,
-                    symbol: symbol
-                }));
-            });
-            
-            // Check for winner
-            const winner = checkWinner(game.board);
-            if (winner || !game.board.includes(null)) {
+        switch(data.type) {
+            case 'move':
+                const playerIndex = game.players.indexOf(ws);
+                const symbol = playerIndex === 0 ? 'X' : 'O';
+                
+                game.board[data.index] = symbol;
+                
+                // Broadcast move to both players
                 game.players.forEach(player => {
                     player.send(JSON.stringify({
-                        type: 'gameOver',
-                        winner: winner
+                        type: 'move',
+                        index: data.index,
+                        symbol: symbol
                     }));
                 });
+                
+                // Check for winner
+                const winner = checkWinner(game.board);
+                if (winner || !game.board.includes(null)) {
+                    game.players.forEach(player => {
+                        player.send(JSON.stringify({
+                            type: 'gameOver',
+                            winner: winner
+                        }));
+                    });
+                    games.delete(ws.gameId);
+                }
+                break;
+                
+            case 'newGame':
+                // Handle new game request
                 games.delete(ws.gameId);
-            }
+                waitingQueue.push(ws);
+                ws.send(JSON.stringify({ 
+                    type: 'status', 
+                    message: `You are #${waitingQueue.length} in queue...`
+                }));
+                break;
         }
     });
     
     ws.on('close', () => {
+        // Remove from queue if disconnected
+        waitingQueue = waitingQueue.filter(player => player !== ws);
+        
         if (waitingPlayer === ws) {
             waitingPlayer = null;
+            if (waitingQueue.length > 0) {
+                waitingPlayer = waitingQueue.shift();
+                waitingPlayer.send(JSON.stringify({ 
+                    type: 'status', 
+                    message: 'Your turn is next! Waiting for opponent...'
+                }));
+            }
         }
+        
         if (ws.gameId && games.has(ws.gameId)) {
             const game = games.get(ws.gameId);
             game.players.forEach(player => {
