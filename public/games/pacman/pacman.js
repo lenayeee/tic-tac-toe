@@ -108,14 +108,13 @@ class PacmanGame {
         const isAlignedX = Math.abs(this.pacman.x - perfectX) < this.pacman.speed;
         const isAlignedY = Math.abs(this.pacman.y - perfectY) < this.pacman.speed;
 
-        // If we're aligned and there's a queued direction, try to change direction
+        // If we're aligned, try to change direction
         if (isAlignedX && isAlignedY) {
             // Snap to grid when aligned
             this.pacman.x = perfectX;
             this.pacman.y = perfectY;
 
             // Check if we can move in the next direction
-            let canChangeDirection = false;
             let nextTileX = currentTileX;
             let nextTileY = currentTileY;
 
@@ -126,31 +125,13 @@ class PacmanGame {
                 case 'right': nextTileX++; break;
             }
 
-            // Check if the next tile in the desired direction is valid
+            // If next direction is valid, change to it
             if (this.maze[nextTileY] && this.maze[nextTileY][nextTileX] !== 1) {
                 this.pacman.direction = this.pacman.nextDirection;
-                canChangeDirection = true;
-            }
-
-            // If we can't change to the desired direction, try to continue in current direction
-            if (!canChangeDirection) {
-                nextTileX = currentTileX;
-                nextTileY = currentTileY;
-                switch(this.pacman.direction) {
-                    case 'up': nextTileY--; break;
-                    case 'down': nextTileY++; break;
-                    case 'left': nextTileX--; break;
-                    case 'right': nextTileX++; break;
-                }
-                
-                // If we can't continue in current direction, stop
-                if (!this.maze[nextTileY] || this.maze[nextTileY][nextTileX] === 1) {
-                    return;
-                }
             }
         }
 
-        // Move Pacman
+        // Move in current direction
         let nextX = this.pacman.x;
         let nextY = this.pacman.y;
 
@@ -455,10 +436,14 @@ function handleKeyPress(event) {
 
     // Send direction change to server if we have a valid move
     if (newDirection && currentPlayer) {
-        currentPlayer.pacman.direction = newDirection; // Update local direction immediately
+        // Update both current and next direction
+        currentPlayer.pacman.nextDirection = newDirection;
+        currentPlayer.pacman.direction = newDirection;
+        
         ws.send(JSON.stringify({
             type: 'move',
             direction: newDirection,
+            nextDirection: newDirection,
             position: {
                 x: currentPlayer.pacman.x,
                 y: currentPlayer.pacman.y
@@ -480,6 +465,7 @@ function handleGameMessage(data) {
             // Update other player's pacman position and direction
             const otherPlayer = data.player === 1 ? player1 : player2;
             otherPlayer.pacman.direction = data.direction;
+            otherPlayer.pacman.nextDirection = data.direction;
             if (data.position) {
                 otherPlayer.pacman.x = data.position.x;
                 otherPlayer.pacman.y = data.position.y;
