@@ -285,23 +285,162 @@ class PacmanGame {
     }
 
     updatePacman() {
-        // Implement Pacman update logic
+        if (!this.alive) return;
+
+        // Update mouth animation
+        this.pacman.mouthOpen += 0.2 * this.pacman.mouthDir;
+        if (this.pacman.mouthOpen >= 0.5) this.pacman.mouthDir = -1;
+        if (this.pacman.mouthOpen <= 0) this.pacman.mouthDir = 1;
+
+        // Get current tile position
+        const currentTileX = Math.round(this.pacman.x / this.tileSize);
+        const currentTileY = Math.round(this.pacman.y / this.tileSize);
+        
+        // Perfect alignment coordinates
+        const perfectX = currentTileX * this.tileSize;
+        const perfectY = currentTileY * this.tileSize;
+        
+        // Check if we're close to perfect alignment
+        const isAlignedX = Math.abs(this.pacman.x - perfectX) < this.pacman.speed;
+        const isAlignedY = Math.abs(this.pacman.y - perfectY) < this.pacman.speed;
+
+        // If we're aligned, try to change direction
+        if (isAlignedX && isAlignedY) {
+            // Snap to grid when aligned
+            this.pacman.x = perfectX;
+            this.pacman.y = perfectY;
+
+            // Check if we can move in the next direction
+            let nextTileX = currentTileX;
+            let nextTileY = currentTileY;
+
+            switch(this.pacman.nextDirection) {
+                case 'up': nextTileY--; break;
+                case 'down': nextTileY++; break;
+                case 'left': nextTileX--; break;
+                case 'right': nextTileX++; break;
+            }
+
+            // If next direction is valid, change to it
+            if (this.maze[nextTileY] && this.maze[nextTileY][nextTileX] !== 1) {
+                this.pacman.direction = this.pacman.nextDirection;
+            }
+        }
+
+        // Move in current direction
+        let nextX = this.pacman.x;
+        let nextY = this.pacman.y;
+
+        switch(this.pacman.direction) {
+            case 'right': nextX += this.pacman.speed; break;
+            case 'left': nextX -= this.pacman.speed; break;
+            case 'up': nextY -= this.pacman.speed; break;
+            case 'down': nextY += this.pacman.speed; break;
+        }
+
+        // Check if next position is valid
+        const nextTileX = Math.floor(nextX / this.tileSize);
+        const nextTileY = Math.floor(nextY / this.tileSize);
+
+        if (this.maze[nextTileY] && this.maze[nextTileY][nextTileX] !== 1) {
+            this.pacman.x = nextX;
+            this.pacman.y = nextY;
+
+            // Handle dot collection
+            if (this.maze[nextTileY][nextTileX] === 2) {
+                this.maze[nextTileY][nextTileX] = 0;
+                this.score += 10;
+                this.dotsRemaining--;
+                this.sounds.chomp.play();
+            } else if (this.maze[nextTileY][nextTileX] === 3) {
+                this.maze[nextTileY][nextTileX] = 0;
+                this.score += 50;
+                this.powerMode = true;
+                this.powerModeTimer = 600;
+                this.sounds.powerPellet.play();
+            }
+        }
+
+        // Handle tunnel wrapping
+        if (this.pacman.x < 0) {
+            this.pacman.x = this.canvas.width - this.tileSize;
+        } else if (this.pacman.x >= this.canvas.width) {
+            this.pacman.x = 0;
+        }
     }
 
     updateGhosts() {
-        // Implement ghosts update logic
+        const settings = this.ghostSettings[this.difficulty];
+        
+        this.ghosts.forEach((ghost, index) => {
+            if (this.powerMode) {
+                this.moveGhostAway(ghost);
+                return;
+            }
+
+            if (Math.random() < settings.chaseChance) {
+                switch(index) {
+                    case 0: // Red ghost - direct chase
+                        this.chaseTarget(ghost, this.pacman);
+                        break;
+                    case 1: // Pink ghost - intercept
+                        const target = this.getInterceptPoint();
+                        this.chaseTarget(ghost, target);
+                        break;
+                    case 2: // Cyan ghost - flank
+                        this.flankPacman(ghost);
+                        break;
+                    case 3: // Orange ghost - random with occasional chase
+                        if (Math.random() < 0.3) {
+                            this.chaseTarget(ghost, this.pacman);
+                        } else {
+                            this.moveRandomly(ghost);
+                        }
+                        break;
+                }
+            } else {
+                this.moveRandomly(ghost);
+            }
+        });
     }
 
     checkCollisions() {
-        // Implement collision checking logic
+        this.ghosts.forEach(ghost => {
+            const dx = this.pacman.x - ghost.x;
+            const dy = this.pacman.y - ghost.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < this.tileSize) {
+                if (this.powerMode) {
+                    ghost.x = 14 * this.tileSize;
+                    ghost.y = 14 * this.tileSize;
+                    this.score += 200;
+                    this.sounds.ghostEaten.play();
+                } else {
+                    this.alive = false;
+                    this.handleDeath();
+                }
+            }
+        });
     }
 
     updatePowerMode() {
-        // Implement power mode update logic
+        if (this.powerMode) {
+            this.powerModeTimer--;
+            if (this.powerModeTimer <= 0) {
+                this.powerMode = false;
+            }
+        }
     }
 
     getDirectionAngle() {
-        // Implement logic to get Pacman's direction angle
+        switch(this.pacman.direction) {
+            case 'right': return 0;
+            case 'down': return Math.PI/2;
+            case 'left': return Math.PI;
+            case 'up': return -Math.PI/2;
+            default: return 0;
+        }
     }
 }
 
