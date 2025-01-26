@@ -363,11 +363,11 @@ app.get('/tictactoe', (req, res) => {
 });
 
 app.get('/pacman', (req, res) => {
-    res.sendFile(__dirname + '/public/pacman.html');
+    res.sendFile(__dirname + '/public/games/pacman/pacman.html');
 });
 
 app.get('/snake', (req, res) => {
-    res.sendFile(__dirname + '/public/snake.html');
+    res.sendFile(__dirname + '/public/games/snake/snake.html');
 });
 
 // Add a route for the script.js that tictactoe.html needs

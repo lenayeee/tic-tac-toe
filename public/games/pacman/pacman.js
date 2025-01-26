@@ -78,6 +78,8 @@ class PacmanGame {
     }
 
     updatePacman() {
+        if (!this.alive) return;
+
         // Update mouth animation
         this.pacman.mouthOpen += 0.2 * this.pacman.mouthDir;
         if (this.pacman.mouthOpen >= 0.5) this.pacman.mouthDir = -1;
@@ -102,17 +104,23 @@ class PacmanGame {
             this.pacman.x = nextX;
             this.pacman.y = nextY;
 
-            // Collect dots
+            // Collect dots and power pellets
             if (this.maze[tileY][tileX] === 2) {
                 this.maze[tileY][tileX] = 0;
                 this.score += 10;
-            }
-            // Collect power pellets
-            else if (this.maze[tileY][tileX] === 3) {
+                ws.send(JSON.stringify({
+                    type: 'dotEaten',
+                    position: { x: tileX, y: tileY }
+                }));
+            } else if (this.maze[tileY][tileX] === 3) {
                 this.maze[tileY][tileX] = 0;
                 this.score += 50;
                 this.powerMode = true;
-                this.powerModeTimer = 600; // 10 seconds
+                this.powerModeTimer = 600;
+                ws.send(JSON.stringify({
+                    type: 'powerPellet',
+                    position: { x: tileX, y: tileY }
+                }));
             }
         }
     }
@@ -263,6 +271,16 @@ function connect() {
         const data = JSON.parse(event.data);
         handleGameMessage(data);
     };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('status').textContent = 'Connection error. Please refresh the page.';
+    };
+
+    ws.onclose = () => {
+        if (gameLoop) clearInterval(gameLoop);
+        document.getElementById('status').textContent = 'Connection lost. Please refresh the page.';
+    };
 }
 
 function initGame() {
@@ -288,13 +306,25 @@ function handleKeyPress(event) {
             case 'a': newDirection = 'left'; break;
             case 'd': newDirection = 'right'; break;
         }
+    } else {
+        switch(event.key) {
+            case 'ArrowUp': newDirection = 'up'; break;
+            case 'ArrowDown': newDirection = 'down'; break;
+            case 'ArrowLeft': newDirection = 'left'; break;
+            case 'ArrowRight': newDirection = 'right'; break;
+        }
     }
 
     // Send direction change to server
     if (newDirection !== pacman.direction) {
+        pacman.direction = newDirection; // Update local direction immediately
         ws.send(JSON.stringify({
             type: 'move',
-            direction: newDirection
+            direction: newDirection,
+            position: {
+                x: pacman.x,
+                y: pacman.y
+            }
         }));
     }
 }
@@ -303,14 +333,19 @@ function handleGameMessage(data) {
     switch(data.type) {
         case 'init':
             isPlayer1 = data.player === 1;
-            document.getElementById('status').textContent = 'Game Started!';
+            document.getElementById('status').textContent = 'Game Started! ' + 
+                (isPlayer1 ? 'You are Player 1 (WASD)' : 'You are Player 2 (Arrow Keys)');
             startGameLoop();
             break;
             
         case 'move':
-            // Update other player's pacman direction
+            // Update other player's pacman position and direction
             const otherPlayer = data.player === 1 ? player1 : player2;
             otherPlayer.pacman.direction = data.direction;
+            if (data.position) {
+                otherPlayer.pacman.x = data.position.x;
+                otherPlayer.pacman.y = data.position.y;
+            }
             break;
             
         case 'powerPellet':
@@ -338,6 +373,10 @@ function handleGameMessage(data) {
 function startGameLoop() {
     if (gameLoop) clearInterval(gameLoop);
     
+    document.getElementById('status').textContent = isPlayer1 ? 
+        'You are Player 1 (WASD)' : 
+        'You are Player 2 (Arrow Keys)';
+    
     gameLoop = setInterval(() => {
         player1.update();
         player2.update();
@@ -356,6 +395,7 @@ function startGameLoop() {
                 type: 'gameOver',
                 winner: winner
             }));
+            clearInterval(gameLoop);
         }
     }, 1000/60); // 60 FPS
 }
