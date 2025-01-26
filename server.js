@@ -96,29 +96,20 @@ function handlePacmanGame(ws, message) {
                 otherPlayer.send(JSON.stringify({
                     type: 'move',
                     player: game.players.indexOf(ws) + 1,
-                    direction: message.direction
+                    direction: message.direction,
+                    nextDirection: message.nextDirection,
+                    position: message.position
                 }));
             }
             break;
 
         case 'powerPellet':
-            // Sync power pellet collection
-            game.players.forEach(player => {
-                if (player.readyState === 1) {
-                    player.send(JSON.stringify({
-                        type: 'powerPellet',
-                        player: game.players.indexOf(ws) + 1
-                    }));
-                }
-            });
-            break;
-
         case 'dotEaten':
-            // Sync dot collection
+            // Broadcast to both players
             game.players.forEach(player => {
-                if (player.readyState === 1) {
+                if (player !== ws && player.readyState === 1) {
                     player.send(JSON.stringify({
-                        type: 'dotEaten',
+                        type: message.type,
                         player: game.players.indexOf(ws) + 1,
                         position: message.position
                     }));
@@ -131,7 +122,8 @@ function handlePacmanGame(ws, message) {
                 if (player.readyState === 1) {
                     player.send(JSON.stringify({
                         type: 'gameOver',
-                        winner: message.winner
+                        winner: message.winner,
+                        scores: message.scores
                     }));
                 }
             });
@@ -201,20 +193,28 @@ wss.on('connection', (ws, req) => {
         if (waitingPacmanPlayer) {
             // Start new Pacman game
             const gameId = Date.now();
-            pacmanGames.set(gameId, {
-                players: [waitingPacmanPlayer, ws]
-            });
+            const game = {
+                players: [waitingPacmanPlayer, ws],
+                started: false
+            };
+            pacmanGames.set(gameId, game);
             
             waitingPacmanPlayer.gameId = gameId;
             ws.gameId = gameId;
             
-            // Assign players
+            // Assign players and start warm-up
             waitingPacmanPlayer.send(JSON.stringify({ type: 'init', player: 1 }));
             ws.send(JSON.stringify({ type: 'init', player: 2 }));
+            
+            // Notify both players that game is starting
+            game.players.forEach(player => {
+                player.send(JSON.stringify({ type: 'playerJoined' }));
+            });
             
             waitingPacmanPlayer = null;
         } else {
             waitingPacmanPlayer = ws;
+            ws.send(JSON.stringify({ type: 'init', player: 1 }));
         }
 
         ws.on('message', (message) => {
